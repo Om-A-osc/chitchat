@@ -2,6 +2,8 @@ package com.example.chitchat.websocket;
 
 import com.example.chitchat.dto.ChatMessageRequest;
 import com.example.chitchat.dto.ChatMessageResponse;
+import com.example.chitchat.dto.MessageDeliveryStatus;
+import com.example.chitchat.dto.WebSocketBaseRequest;
 import com.example.chitchat.entity.MessageEntity;
 import com.example.chitchat.service.MessageService;
 import com.example.chitchat.service.RoomService;
@@ -42,30 +44,47 @@ public class ChatWebSocketHandler extends TextWebSocketHandler {
     public void handleTextMessage(WebSocketSession session, TextMessage message) throws IOException {
         String username = (String) session.getAttributes().get("username");
 
-        ChatMessageRequest req = objectMapper.readValue(message.getPayload(),ChatMessageRequest.class);
+        WebSocketBaseRequest req = objectMapper.readValue(message.getPayload(), WebSocketBaseRequest.class);
 
         if("SEND_MESSAGE".equals(req.getType())){
-            MessageEntity savedMessage = messageService.saveMessage(req,username);
+            ChatMessageRequest request = objectMapper.readValue(message.getPayload(), ChatMessageRequest.class);
+
+            MessageEntity savedMessage = messageService.saveMessage(request,username);
+
             ChatMessageResponse messageToSend = new ChatMessageResponse();
 
             messageToSend.setMessageId(savedMessage.getMessageId());
             messageToSend.setContent(savedMessage.getContent());
             messageToSend.setCreatedTimestamp(savedMessage.getCreatedTimestamp());
+            messageToSend.setSender(username);
+            messageToSend.setRoomId(savedMessage.getRoomId());
+            messageToSend.setType("CHAT_MESSAGE");
 
-            webSocketSessionManager.broadcastToRoom(req.getRoomId(),messageToSend);
+            webSocketSessionManager.broadcastToRoom(request.getRoomId(),messageToSend);
+        }
+        else if("MESSAGE_DELIVERED".equals(req.getType())){
+            MessageDeliveryStatus request = objectMapper.readValue(message.getPayload(),MessageDeliveryStatus.class);
+            messageService.updateMessageReceiptDeliveredStatus(request,username);
+            webSocketSessionManager.broadcastToRoomMessageStatus(request, username);
+        }
+        else if("MESSAGE_READ".equals(req.getType())){
+            MessageDeliveryStatus request = objectMapper.readValue(message.getPayload(),MessageDeliveryStatus.class);
+            messageService.updateMessageReceiptReadStatus(request,username);
+            webSocketSessionManager.broadcastToRoomMessageStatus(request, username);
         }
         else if("JOIN_ROOM".equals(req.getType())){
-            UUID roomId = req.getRoomId();
+            ChatMessageRequest request = objectMapper.readValue(message.getPayload(), ChatMessageRequest.class);
+            UUID roomId = request.getRoomId();
             if( !roomService.isUserMember(username,roomId) ) return;
-            webSocketSessionManager.joinRoom(req.getRoomId(),session);
+            webSocketSessionManager.joinRoom(request.getRoomId(),session);
         }
-        else if("LEAVE_ROOM".equals(req.getType())){
-            webSocketSessionManager.leaveRoom(req.getRoomId(),session);
-        }
+
 
     }
     @Override
     public void afterConnectionClosed(WebSocketSession session, CloseStatus status){
+        String username = (String) session.getAttributes().get("username");
+
         System.out.println("Connection closed " + session.getId());
     }
 }

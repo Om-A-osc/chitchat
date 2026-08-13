@@ -20,6 +20,6 @@ public class WebSocketConfig implements WebSocketConfigurer {
 
     @Override
     public void registerWebSocketHandlers(WebSocketHandlerRegistry registry) {
-        registry.addHandler(chatWebSocketHandler,"/ws").addInterceptors(jwtHandshakeInterceptor);
+        registry.addHandler(chatWebSocketHandler,"/ws").addInterceptors(jwtHandshakeInterceptor).setAllowedOrigins("*");;
     }
 }

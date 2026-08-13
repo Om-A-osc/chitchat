@@ -29,6 +29,9 @@ public class MessageEntity {
 
     private boolean isDeleted = false;
 
+    public MessageEntity() {
+    }
+
     public MessageEntity(UUID roomId, String username, String content, LocalDateTime createdTimestamp, LocalDateTime lastEditedTimestamp, boolean isDeleted){
         this.roomId = roomId;
         this.username = username;

@@ -1,19 +1,19 @@
 package com.example.chitchat.service;
 
+import com.example.chitchat.dto.ChatMessageResponse;
 import com.example.chitchat.dto.CreateRoomRequest;
+import com.example.chitchat.dto.GetRoomResponse;
 import com.example.chitchat.entity.RoomEntity;
 import com.example.chitchat.entity.UsersRoomsRolesEntity;
 import com.example.chitchat.entity.UsersRoomsRolesIdEntity;
 import com.example.chitchat.repository.RoomRepository;
 import com.example.chitchat.repository.UsersRoomsRolesRepository;
+import com.example.chitchat.websocket.WebsocketSessionManager;
 import jakarta.transaction.Transactional;
 import org.springframework.stereotype.Service;
 
 import java.time.LocalDateTime;
-import java.util.ArrayList;
-import java.util.List;
-import java.util.Set;
-import java.util.UUID;
+import java.util.*;
 
 
 @Service
@@ -21,11 +21,13 @@ public class RoomService {
     private RoomRepository roomRepository;
     private UsersRoomsRolesRepository usersRoomsRolesRepository;
     private UserService userService;
+    private final WebsocketSessionManager websocketSessionManager;
 
-    public RoomService(RoomRepository roomRepository, UsersRoomsRolesRepository usersRoomsRolesRepository, UserService userService){
+    public RoomService(RoomRepository roomRepository, UsersRoomsRolesRepository usersRoomsRolesRepository, UserService userService, WebsocketSessionManager websocketSessionManager){
         this.roomRepository = roomRepository;
         this.usersRoomsRolesRepository = usersRoomsRolesRepository;
         this.userService = userService;
+        this.websocketSessionManager = websocketSessionManager;
     }
 
     @Transactional
@@ -74,5 +76,85 @@ public class RoomService {
         return usersRoomsRolesRepository.findByIdUsernameAndIdRoomId(username,roomId).isPresent();
     }
 
+
+    public GetRoomResponse getAllRooms(String username) {
+
+        List<UUID> roomIds =
+                usersRoomsRolesRepository
+                        .findRoomIdsByUsername(username);
+
+        Map<GetRoomResponse.RoomIdRoomName,
+                        List<GetRoomResponse.RoomUserInfo>> rooms =
+                new HashMap<>();
+
+        List<RoomEntity> roomEntities =
+                roomRepository.findByRoomIdIn(roomIds);
+
+        for (RoomEntity room : roomEntities) {
+
+            UUID roomId = room.getRoomId();
+
+            List<UsersRoomsRolesEntity> members =
+                    usersRoomsRolesRepository
+                            .findMembersByRoomId(roomId);
+
+            List<GetRoomResponse.RoomUserInfo> users =
+                    members.stream()
+                            .map(member ->
+                                    new GetRoomResponse.RoomUserInfo(
+                                            member.getId().getUsername(),
+                                            member.getRoleType()
+                                    )
+                            )
+                            .toList();
+
+            GetRoomResponse.RoomIdRoomName roomInfo =
+                    new GetRoomResponse.RoomIdRoomName(
+                            roomId,
+                            room.getRoomname()
+                    );
+
+            rooms.put(roomInfo, users);
+        }
+
+        GetRoomResponse response = new GetRoomResponse();
+        response.setRooms(rooms);
+
+        return response;
+    }
+
+    public boolean leaveRoom(String username,UUID roomId){
+        if( !isUserMember(username, roomId) ) return true;
+        UsersRoomsRolesIdEntity id = new UsersRoomsRolesIdEntity(username,roomId);
+        usersRoomsRolesRepository.deleteById(id);
+
+        ChatMessageResponse event = new ChatMessageResponse();
+        event.setSender("SYSTEM_DAEMON");
+        event.setCreatedTimestamp(LocalDateTime.now());
+        event.setContent(username+" left channel");
+        event.setMessageId(UUID.randomUUID());
+        event.setType("CHAT_MESSAGE");
+        event.setRoomId(roomId);
+        websocketSessionManager.broadcastToRoom(roomId,event);
+
+        return true;
+    }
+
+    public Boolean joinRoom( String username , UUID roomId ){
+        if( isUserMember(username,roomId) ) return true ;
+        UsersRoomsRolesEntity newUser = new UsersRoomsRolesEntity( new UsersRoomsRolesIdEntity(username,roomId), "MEMBER" );
+        usersRoomsRolesRepository.save(newUser);
+
+        ChatMessageResponse event = new ChatMessageResponse();
+        event.setSender("SYSTEM_DAEMON");
+        event.setCreatedTimestamp(LocalDateTime.now());
+        event.setContent(username+" joined channel");
+        event.setMessageId(UUID.randomUUID());
+        event.setType("CHAT_MESSAGE");
+        event.setRoomId(roomId);
+
+        websocketSessionManager.broadcastToRoom(roomId,event);
+        return true ;
+    }
 
 }

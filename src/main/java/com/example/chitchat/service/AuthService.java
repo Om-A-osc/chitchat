@@ -7,6 +7,7 @@ import com.example.chitchat.repository.UserRepository;
 import com.nimbusds.jose.JOSEException;
 import org.springframework.stereotype.Service;
 
+import java.text.ParseException;
 import java.util.Optional;
 
 @Service
@@ -41,6 +42,16 @@ public class AuthService {
             }
         }
         return null;
+    }
+
+    public AuthResponse refreshUserToken(String refreshToken) throws ParseException,JOSEException {
+        if(!jwtService.validateRefreshToken(refreshToken)) return null;
+
+        String username = jwtService.getUsernameFromToken(refreshToken);
+        String newAccessToken = jwtService.generateAccessToken(username);
+
+        AuthResponse authResponse = new AuthResponse(newAccessToken,refreshToken);
+        return authResponse;
     }
 
 

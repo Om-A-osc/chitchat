@@ -26,7 +26,7 @@ public class JWTService {
                                                             issuer("om anand").
                                                             audience("chitchatpeople").
                                                             issueTime(now).
-                                                            expirationTime(new Date(now.getTime() + 15 * 60 * 1000)).
+                                                            expirationTime(new Date(now.getTime() + 8 * 60 * 60 * 1000)).
                                                             claim("type","access").
                                                             build();
         JWSHeader header = new JWSHeader(JWSAlgorithm.HS256);
