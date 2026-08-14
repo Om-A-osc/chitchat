@@ -8,7 +8,6 @@ import jakarta.persistence.Table;
 @Table(name="rooms_users_roles")
 public class UsersRoomsRolesEntity {
 
-    //USERS_ROOMS_ROLES( username, room_id, role_type )
     @EmbeddedId
     private UsersRoomsRolesIdEntity id;
     private String roleType;

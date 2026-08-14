@@ -22,12 +22,18 @@ public class RoomService {
     private UsersRoomsRolesRepository usersRoomsRolesRepository;
     private UserService userService;
     private final WebsocketSessionManager websocketSessionManager;
+    private final com.example.chitchat.repository.RoomKeyRepository roomKeyRepository;
 
-    public RoomService(RoomRepository roomRepository, UsersRoomsRolesRepository usersRoomsRolesRepository, UserService userService, WebsocketSessionManager websocketSessionManager){
+    public RoomService(RoomRepository roomRepository,
+                       UsersRoomsRolesRepository usersRoomsRolesRepository,
+                       UserService userService,
+                       WebsocketSessionManager websocketSessionManager,
+                       com.example.chitchat.repository.RoomKeyRepository roomKeyRepository){
         this.roomRepository = roomRepository;
         this.usersRoomsRolesRepository = usersRoomsRolesRepository;
         this.userService = userService;
         this.websocketSessionManager = websocketSessionManager;
+        this.roomKeyRepository = roomKeyRepository;
     }
 
     @Transactional
@@ -36,7 +42,6 @@ public class RoomService {
 
         for( String user : users ){
             if( !userService.userExists(user) ){
-                // group cannot be created with non-existing user
                 return null;
             }
         }
@@ -51,24 +56,26 @@ public class RoomService {
 
         UUID roomId = room.getRoomId();
 
-        // put participants in usersRoomsRoles table
         List<UsersRoomsRolesEntity> usersRoomsRoles = new ArrayList<>();
         for( String user : users ){
-
-            // creating composite id of roomId and username
             UsersRoomsRolesIdEntity id = new UsersRoomsRolesIdEntity(user, roomId);
             UsersRoomsRolesEntity e = new UsersRoomsRolesEntity(id,"MEMBER");
-
             usersRoomsRoles.add(e);
         }
-        // create current user as admin
-        UsersRoomsRolesIdEntity adminUserId = new UsersRoomsRolesIdEntity(username, roomId);
 
+        UsersRoomsRolesIdEntity adminUserId = new UsersRoomsRolesIdEntity(username, roomId);
         UsersRoomsRolesEntity adminUser = new UsersRoomsRolesEntity(adminUserId,"ADMIN");
         usersRoomsRoles.add(adminUser);
 
         usersRoomsRolesRepository.saveAll(usersRoomsRoles);
-        return "Room created and users, roles, rooms mapped";
+
+        if (req.getUserKeys() != null) {
+            req.getUserKeys().forEach((user, key) -> {
+                roomKeyRepository.save(new com.example.chitchat.entity.RoomKeyEntity(roomId, user, key));
+            });
+        }
+
+        return roomId.toString();
     }
 
 

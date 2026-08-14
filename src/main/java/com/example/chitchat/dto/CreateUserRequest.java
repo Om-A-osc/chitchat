@@ -8,6 +8,15 @@ public class CreateUserRequest {
     private String password;
     private String tagline;
     private String profilePicture;
+    private String publicKey;
+
+    public String getPublicKey() {
+        return publicKey;
+    }
+
+    public void setPublicKey(String publicKey) {
+        this.publicKey = publicKey;
+    }
 
     public String getUsername() {
         return username;

@@ -1,0 +1,21 @@
+# ===================================================================
+# CHITCHAT DATABASE CONFIGURATION (EXAMPLE)
+# Copy this file to application.properties and update the values
+# ===================================================================
+
+spring.application.name=chitchat
+
+# PostgreSQL Database Configuration
+spring.datasource.url=jdbc:postgresql://localhost:5432/chitchat
+spring.datasource.username=postgres
+spring.datasource.password=postgres
+
+# JPA / Hibernate configuration
+spring.jpa.hibernate.ddl-auto=update
+spring.jpa.show-sql=false
+spring.jpa.properties.hibernate.dialect=org.hibernate.dialect.PostgreSQLDialect
+
+# Security Configuration
+# JWT Secret (Must be at least 256 bits / 32 characters for HS256)
+# Update this with a strong, random secret key in production
+spring.auth.jwt-secret=this-is-a-very-secure-secret-key-that-is-long-enough-for-hs256

@@ -23,6 +23,7 @@ public class MessageService {
     private final UsersRoomsRolesRepository usersRoomsRolesRepository;
     private final RoomService roomService;
     private final MessageReceiptRepository messageReceiptRepository;
+
     public MessageService(MessageRepository messageRepository,
                           UsersRoomsRolesRepository usersRoomsRolesRepository,
                           RoomService roomService,

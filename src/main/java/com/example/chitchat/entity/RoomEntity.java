@@ -8,7 +8,6 @@ import java.util.UUID;
 @Entity
 @Table(name="rooms")
 public class RoomEntity {
-    //ROOMS( room_id, roomname, maximum_capacity, created_timestamp )
     @Id
     @GeneratedValue(strategy = GenerationType.UUID)
     private UUID roomId;

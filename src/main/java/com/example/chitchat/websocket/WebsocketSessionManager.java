@@ -103,6 +103,7 @@ public class WebsocketSessionManager {
 
         String json = objectMapper.writeValueAsString(mailDeliveryResponse);
         Set<WebSocketSession> sessions = roomSessions.get(roomId);
+        if( sessions==null ) return;
 
         for( WebSocketSession s : sessions ){
             if( !s.isOpen() ){

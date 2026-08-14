@@ -21,9 +21,13 @@ public class RoomController {
     }
 
     @PostMapping("/room/create")
-    public String createRoom(@RequestBody CreateRoomRequest req, Authentication authentication){
+    public ResponseEntity<String> createRoom(@RequestBody CreateRoomRequest req, Authentication authentication){
         String username = authentication.getName();
-        return roomService.createRoom(req, username);
+        String result = roomService.createRoom(req, username);
+        if (result == null) {
+            return ResponseEntity.status(HttpStatus.BAD_REQUEST).body("Failed to create room. One or more participants do not exist.");
+        }
+        return ResponseEntity.ok(result);
     }
     @GetMapping("/room/all")
     public GetRoomResponse getAllRooms(Authentication authentication){

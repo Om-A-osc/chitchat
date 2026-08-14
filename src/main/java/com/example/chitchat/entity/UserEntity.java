@@ -22,6 +22,17 @@ public class UserEntity {
     private String tagline;
     private String profilePicture;
 
+    @Column(columnDefinition = "TEXT")
+    private String publicKey;
+
+    public String getPublicKey() {
+        return publicKey;
+    }
+
+    public void setPublicKey(String publicKey) {
+        this.publicKey = publicKey;
+    }
+
     public String getUsername() {
         return username;
     }
