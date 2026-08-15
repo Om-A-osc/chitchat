@@ -22,18 +22,14 @@ public class RoomService {
     private UsersRoomsRolesRepository usersRoomsRolesRepository;
     private UserService userService;
     private final WebsocketSessionManager websocketSessionManager;
-    private final com.example.chitchat.repository.RoomKeyRepository roomKeyRepository;
-
     public RoomService(RoomRepository roomRepository,
                        UsersRoomsRolesRepository usersRoomsRolesRepository,
                        UserService userService,
-                       WebsocketSessionManager websocketSessionManager,
-                       com.example.chitchat.repository.RoomKeyRepository roomKeyRepository){
+                       WebsocketSessionManager websocketSessionManager){
         this.roomRepository = roomRepository;
         this.usersRoomsRolesRepository = usersRoomsRolesRepository;
         this.userService = userService;
         this.websocketSessionManager = websocketSessionManager;
-        this.roomKeyRepository = roomKeyRepository;
     }
 
     @Transactional
@@ -69,11 +65,6 @@ public class RoomService {
 
         usersRoomsRolesRepository.saveAll(usersRoomsRoles);
 
-        if (req.getUserKeys() != null) {
-            req.getUserKeys().forEach((user, key) -> {
-                roomKeyRepository.save(new com.example.chitchat.entity.RoomKeyEntity(roomId, user, key));
-            });
-        }
 
         return roomId.toString();
     }

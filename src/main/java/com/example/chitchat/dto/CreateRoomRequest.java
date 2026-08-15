@@ -8,15 +8,6 @@ public class CreateRoomRequest {
     private String roomname;
     private Set<String> participants;
     private int maximumCapacity;
-    private java.util.Map<String, String> userKeys;
-
-    public java.util.Map<String, String> getUserKeys() {
-        return userKeys;
-    }
-
-    public void setUserKeys(java.util.Map<String, String> userKeys) {
-        this.userKeys = userKeys;
-    }
 
     public String getRoomname() {
         return roomname;

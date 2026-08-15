@@ -56,7 +56,7 @@ public class WebsocketSessionManager {
         if(sessions.isEmpty()) roomSessions.remove(roomId);
     }
 
-    public void broadcastToRoom(UUID roomId, ChatMessageResponse message){
+    public void broadcastToRoom(UUID roomId, Object message){
         Set<WebSocketSession> sessions = roomSessions.get(roomId);
         if( sessions==null ) return;
         String json = objectMapper.writeValueAsString(message);
