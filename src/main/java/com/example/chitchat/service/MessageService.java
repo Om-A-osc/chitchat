@@ -1,5 +1,7 @@
 package com.example.chitchat.service;
-
+import com.example.chitchat.entity.UserEntity;
+import com.example.chitchat.repository.UserRepository;
+import java.security.GeneralSecurityException;
 import com.example.chitchat.dto.ChatMessageRequest;
 import com.example.chitchat.dto.ChatMessageResponse;
 import com.example.chitchat.dto.MessageDeliveryStatus;
@@ -23,31 +25,61 @@ public class MessageService {
     private final UsersRoomsRolesRepository usersRoomsRolesRepository;
     private final RoomService roomService;
     private final MessageReceiptRepository messageReceiptRepository;
+    // for msg encryption
+    private final MessageCryptoService messageCryptoService;   
+    private final UserRepository userRepository;              
+
     public MessageService(MessageRepository messageRepository,
                           UsersRoomsRolesRepository usersRoomsRolesRepository,
                           RoomService roomService,
-                          MessageReceiptRepository messageReceiptRepository){
+                          MessageReceiptRepository messageReceiptRepository,MessageCryptoService messageCryptoService,UserRepository userRepository){
         this.messageRepository = messageRepository;
         this.usersRoomsRolesRepository = usersRoomsRolesRepository;
         this.roomService = roomService;
         this.messageReceiptRepository = messageReceiptRepository;
+        // for msg encryption
+        this.messageCryptoService = messageCryptoService;
+        this.userRepository = userRepository;
     }
 
-
+    // now save the message with ciphertext
     public MessageEntity saveMessage(ChatMessageRequest req, String username){
-        UUID roomId = req.getRoomId();
-        String content = req.getContent();
-
-        if(!roomService.isUserMember(username,roomId)){
-            throw new RuntimeException("User not a member of room");
-        }
-
-        MessageEntity messageEntity = new MessageEntity(roomId, username, content, LocalDateTime.now(), null , false);
-
+    UUID roomId = req.getRoomId();
+    String content = req.getContent();
+ 
+    if(!roomService.isUserMember(username,roomId)){
+        throw new RuntimeException("User not a member of room");
+    }
+ 
+    try {
+        // 1) encrypt — DB stores ciphertext, never plaintext
+        MessageCryptoService.EncryptedData enc = messageCryptoService.encrypt(content);
+ 
+        // 2) unwrap sender's private key (KEK-encrypted at rest) and sign
+        UserEntity sender = userRepository.findById(username).orElseThrow(
+                () -> new RuntimeException("Sender not found: " + username));
+        String privateKey = messageCryptoService.unwrapPrivateKey(sender.getWrappedPrivateKey());
+        String signature = messageCryptoService.sign(
+                privateKey, roomId.toString(), username,
+                enc.ciphertext(), enc.nonce());
+ 
+        // 3) build with the NEW 8-arg constructor
+        MessageEntity messageEntity = new MessageEntity(
+                roomId, username,
+                enc.ciphertext(), enc.nonce(), signature,
+                LocalDateTime.now(), null, false);
+ 
+        // 4) transient field — needed by ChatWebSocketHandler for the live broadcast
+        messageEntity.setContent(content);
+ 
         MessageEntity saveMessageEntity = messageRepository.save(messageEntity);
         initializeMessageReceipt(roomId, saveMessageEntity.getMessageId());
         return saveMessageEntity;
+    } catch (GeneralSecurityException e) {
+        throw new RuntimeException("Could not encrypt/sign message", e);
     }
+}
+
 
     public void initializeMessageReceipt(UUID roomId , UUID messageId ){
         List<String> userNames = usersRoomsRolesRepository.findUsernameByRoomId(roomId);
@@ -56,17 +88,35 @@ public class MessageService {
             messageReceiptRepository.save(new MessageReceipt( new MessageReceiptId(messageId, u), null, null) );
         }
     }
-
+    // now verify + decrypt before returning
     public List<MessageEntity> getRecentMessages(UUID roomId) {
-
-        LocalDateTime cutoff =
-                LocalDateTime.now().minusDays(2);
-
-        return messageRepository.findRecentMessages(
-                roomId,
-                cutoff
-        );
+    LocalDateTime cutoff = LocalDateTime.now().minusDays(2);
+    List<MessageEntity> messages = messageRepository.findRecentMessages(roomId, cutoff);
+ 
+    for (MessageEntity m : messages) {
+        UserEntity sender = userRepository.findById(m.getUsername()).orElse(null);
+        if (sender == null || sender.getPublicKey() == null) {
+            m.setContent("[SIGNATURE VERIFICATION FAILED - unknown sender]");
+            continue;
+        }
+        // verify signature FIRST (signature is over ciphertext, no decrypt needed yet)
+        boolean ok = messageCryptoService.verify(
+                sender.getPublicKey(), m.getRoomId().toString(), m.getUsername(),
+                m.getCiphertext(), m.getNonce(), m.getSignature());
+        if (!ok) {
+            m.setContent("[SIGNATURE VERIFICATION FAILED - forged or modified]");
+            continue;
+        }
+        // then decrypt — throws AEADBadTagException if ciphertext/nonce was tampered
+        try {
+            m.setContent(messageCryptoService.decrypt(m.getCiphertext(), m.getNonce()));
+        } catch (GeneralSecurityException e) {
+            m.setContent("[TAMPERED - AES-GCM authentication failed]");
+        }
     }
+    return messages;
+}
+
 
     public void updateMessageReceiptDeliveredStatus(MessageDeliveryStatus status, String username){
         UUID messageId = status.getMessageId();
