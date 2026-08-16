@@ -1,13 +1,14 @@
 package com.example.chitchat.config;
 
 import com.example.chitchat.service.JWTService;
-import org.jspecify.annotations.Nullable;
 import org.springframework.http.server.ServerHttpRequest;
 import org.springframework.http.server.ServerHttpResponse;
 import org.springframework.stereotype.Component;
 import org.springframework.web.socket.WebSocketHandler;
 import org.springframework.web.socket.server.HandshakeInterceptor;
 
+import java.net.URLDecoder;
+import java.nio.charset.StandardCharsets;
 import java.util.Map;
 
 @Component
@@ -25,9 +26,9 @@ public class JWTHandshakeInterceptor implements HandshakeInterceptor {
         String accessToken = null;
 
         for( String parameter : query.split("&") ){
-            String [] pair = parameter.split("=");
-            if( pair.length==2 && pair[0].equals("token")){
-                accessToken = pair[1];
+            int idx = parameter.indexOf('=');
+            if( idx > 0 && parameter.substring(0, idx).equals("token")){
+                accessToken = URLDecoder.decode(parameter.substring(idx + 1), StandardCharsets.UTF_8);
                 break;
             }
         }
@@ -47,7 +48,7 @@ public class JWTHandshakeInterceptor implements HandshakeInterceptor {
     }
 
     @Override
-    public void afterHandshake(ServerHttpRequest request, ServerHttpResponse response, WebSocketHandler wsHandler, @Nullable Exception exception) {
+    public void afterHandshake(ServerHttpRequest request, ServerHttpResponse response, WebSocketHandler wsHandler, Exception exception) {
 
     }
 }

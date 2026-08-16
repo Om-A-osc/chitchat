@@ -1,13 +1,13 @@
 package com.example.chitchat.entity;
 
 import jakarta.persistence.Embeddable;
-import jakarta.persistence.Entity;
-import org.springframework.security.config.annotation.method.configuration.EnableReactiveMethodSecurity;
 
+import java.io.Serializable;
+import java.util.Objects;
 import java.util.UUID;
 
 @Embeddable
-public class MessageReceiptId {
+public class MessageReceiptId implements Serializable {
     private UUID messageId;
     private String username;
     public MessageReceiptId(){};
@@ -30,5 +30,18 @@ public class MessageReceiptId {
 
     public void setUsername(String username) {
         this.username = username;
+    }
+
+    @Override
+    public boolean equals(Object o) {
+        if (this == o) return true;
+        if (o == null || getClass() != o.getClass()) return false;
+        MessageReceiptId that = (MessageReceiptId) o;
+        return Objects.equals(messageId, that.messageId) && Objects.equals(username, that.username);
+    }
+
+    @Override
+    public int hashCode() {
+        return Objects.hash(messageId, username);
     }
 }

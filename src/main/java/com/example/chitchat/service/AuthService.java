@@ -5,6 +5,7 @@ import com.example.chitchat.dto.AuthResponse;
 import com.example.chitchat.entity.UserEntity;
 import com.example.chitchat.repository.UserRepository;
 import com.nimbusds.jose.JOSEException;
+import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 
 import java.text.ParseException;
@@ -15,10 +16,12 @@ public class AuthService {
 
     private final UserRepository userRepository;
     private final JWTService jwtService;
+    private final PasswordEncoder passwordEncoder;
 
-    public AuthService(UserRepository userRepository, JWTService jwtService ){
+    public AuthService(UserRepository userRepository, JWTService jwtService, PasswordEncoder passwordEncoder){
         this.userRepository = userRepository;
         this.jwtService = jwtService;
+        this.passwordEncoder = passwordEncoder;
     }
 
     public AuthResponse authorizeUser(AuthRequest req){
@@ -30,7 +33,7 @@ public class AuthService {
 
         UserEntity foundUser = user.get();
 
-        if( foundUser.getPassword().equals(password) ){
+        if( passwordEncoder.matches(password, foundUser.getPassword()) ){
             try{
                 String accessToken = jwtService.generateAccessToken(username);
                 String refreshToken = jwtService.generateRefreshToken(username);
@@ -48,6 +51,8 @@ public class AuthService {
         if(!jwtService.validateRefreshToken(refreshToken)) return null;
 
         String username = jwtService.getUsernameFromToken(refreshToken);
+        if(!userRepository.existsById(username)) return null;
+
         String newAccessToken = jwtService.generateAccessToken(username);
 
         AuthResponse authResponse = new AuthResponse(newAccessToken,refreshToken);

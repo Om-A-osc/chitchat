@@ -16,6 +16,7 @@ public class UserEntity {
     @Id
     private String username;
  
+    @JsonIgnore
     @Column(nullable = false)
     private String password;
  

@@ -18,9 +18,9 @@ import java.util.*;
 
 @Service
 public class RoomService {
-    private RoomRepository roomRepository;
-    private UsersRoomsRolesRepository usersRoomsRolesRepository;
-    private UserService userService;
+    private final RoomRepository roomRepository;
+    private final UsersRoomsRolesRepository usersRoomsRolesRepository;
+    private final UserService userService;
     private final WebsocketSessionManager websocketSessionManager;
 
     public RoomService(RoomRepository roomRepository, UsersRoomsRolesRepository usersRoomsRolesRepository, UserService userService, WebsocketSessionManager websocketSessionManager){
@@ -32,7 +32,7 @@ public class RoomService {
 
     @Transactional
     public String createRoom(CreateRoomRequest req, String username){
-        Set<String> users = req.getParticipants();
+        Set<String> users = req.getParticipants() != null ? req.getParticipants() : Collections.emptySet();
 
         for( String user : users ){
             if( !userService.userExists(user) ){
@@ -54,12 +54,13 @@ public class RoomService {
         // put participants in usersRoomsRoles table
         List<UsersRoomsRolesEntity> usersRoomsRoles = new ArrayList<>();
         for( String user : users ){
+            if (!user.equals(username)) {
+                // creating composite id of roomId and username
+                UsersRoomsRolesIdEntity id = new UsersRoomsRolesIdEntity(user, roomId);
+                UsersRoomsRolesEntity e = new UsersRoomsRolesEntity(id,"MEMBER");
 
-            // creating composite id of roomId and username
-            UsersRoomsRolesIdEntity id = new UsersRoomsRolesIdEntity(user, roomId);
-            UsersRoomsRolesEntity e = new UsersRoomsRolesEntity(id,"MEMBER");
-
-            usersRoomsRoles.add(e);
+                usersRoomsRoles.add(e);
+            }
         }
         // create current user as admin
         UsersRoomsRolesIdEntity adminUserId = new UsersRoomsRolesIdEntity(username, roomId);

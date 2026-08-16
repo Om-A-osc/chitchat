@@ -21,8 +21,12 @@ public class AuthController {
     }
 
     @PostMapping("/auth/login")
-    public AuthResponse authorizeUser(@RequestBody AuthRequest req){
-        return authService.authorizeUser(req);
+    public ResponseEntity<AuthResponse> authorizeUser(@RequestBody AuthRequest req){
+        AuthResponse response = authService.authorizeUser(req);
+        if (response == null) {
+            return ResponseEntity.status(HttpStatus.UNAUTHORIZED).build();
+        }
+        return ResponseEntity.ok(response);
     }
 
     @PostMapping("/auth/refresh")

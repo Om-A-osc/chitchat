@@ -1,6 +1,5 @@
 package com.example.chitchat.config;
 
-import com.example.chitchat.service.JWTService;
 import com.example.chitchat.websocket.ChatWebSocketHandler;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.web.socket.config.annotation.EnableWebSocket;
@@ -11,7 +10,7 @@ import org.springframework.web.socket.config.annotation.WebSocketHandlerRegistry
 @EnableWebSocket
 public class WebSocketConfig implements WebSocketConfigurer {
     private final ChatWebSocketHandler chatWebSocketHandler;
-    private JWTHandshakeInterceptor jwtHandshakeInterceptor;
+    private final JWTHandshakeInterceptor jwtHandshakeInterceptor;
 
     public WebSocketConfig(ChatWebSocketHandler chatWebSocketHandler, JWTHandshakeInterceptor jwtHandshakeInterceptor ){
         this.chatWebSocketHandler = chatWebSocketHandler;
@@ -20,6 +19,6 @@ public class WebSocketConfig implements WebSocketConfigurer {
 
     @Override
     public void registerWebSocketHandlers(WebSocketHandlerRegistry registry) {
-        registry.addHandler(chatWebSocketHandler,"/ws").addInterceptors(jwtHandshakeInterceptor).setAllowedOrigins("*");;
+        registry.addHandler(chatWebSocketHandler,"/ws").addInterceptors(jwtHandshakeInterceptor).setAllowedOrigins("*");
     }
 }

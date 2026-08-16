@@ -4,7 +4,7 @@ import jakarta.persistence.Embedded;
 import jakarta.persistence.EmbeddedId;
 import jakarta.persistence.Entity;
 import jakarta.persistence.Table;
-import org.springframework.cglib.core.Local;
+
 
 import java.time.LocalDateTime;
 import java.util.UUID;

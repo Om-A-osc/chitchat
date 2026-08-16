@@ -56,6 +56,15 @@ public class WebsocketSessionManager {
         if(sessions.isEmpty()) roomSessions.remove(roomId);
     }
 
+    public void removeSession( WebSocketSession session ){
+        for( var entry : roomSessions.entrySet() ){
+            entry.getValue().remove(session);
+            if( entry.getValue().isEmpty() ){
+                roomSessions.remove(entry.getKey());
+            }
+        }
+    }
+
     public void broadcastToRoom(UUID roomId, ChatMessageResponse message){
         Set<WebSocketSession> sessions = roomSessions.get(roomId);
         if( sessions==null ) return;
@@ -103,6 +112,7 @@ public class WebsocketSessionManager {
 
         String json = objectMapper.writeValueAsString(mailDeliveryResponse);
         Set<WebSocketSession> sessions = roomSessions.get(roomId);
+        if( sessions==null ) return;
 
         for( WebSocketSession s : sessions ){
             if( !s.isOpen() ){

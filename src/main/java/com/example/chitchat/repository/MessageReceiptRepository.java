@@ -13,7 +13,7 @@ public interface MessageReceiptRepository extends JpaRepository<MessageReceipt, 
     @Query("""
     SELECT r
     FROM MessageReceipt r
-    WHERE r.id.messageId = :messageId
+    WHERE r.messageId.messageId = :messageId
     """)
     List<MessageReceipt> findAllByMessageId(
             @Param("messageId") UUID messageId

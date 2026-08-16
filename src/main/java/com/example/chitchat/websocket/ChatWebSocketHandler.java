@@ -84,7 +84,7 @@ public class ChatWebSocketHandler extends TextWebSocketHandler {
     @Override
     public void afterConnectionClosed(WebSocketSession session, CloseStatus status){
         String username = (String) session.getAttributes().get("username");
-
+        webSocketSessionManager.removeSession(session);
         System.out.println("Connection closed " + session.getId());
     }
 }

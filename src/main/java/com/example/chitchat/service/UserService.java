@@ -3,6 +3,7 @@ package com.example.chitchat.service;
 import com.example.chitchat.dto.CreateUserRequest;
 import com.example.chitchat.entity.UserEntity;
 import com.example.chitchat.repository.UserRepository;
+import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
  
 import java.security.GeneralSecurityException;
@@ -13,17 +14,28 @@ import java.time.LocalDateTime;
 public class UserService {
     private final UserRepository userRepository;
     private final MessageCryptoService messageCryptoService;
+    private final PasswordEncoder passwordEncoder;
  
-    public UserService(UserRepository userRepository, MessageCryptoService messageCryptoService) {
+    public UserService(UserRepository userRepository, MessageCryptoService messageCryptoService, PasswordEncoder passwordEncoder) {
         this.userRepository = userRepository;
         this.messageCryptoService = messageCryptoService;
+        this.passwordEncoder = passwordEncoder;
     }
  
     public UserEntity createUser(CreateUserRequest req) {
+        if (req.getUsername() == null || req.getUsername().isBlank()) {
+            throw new org.springframework.web.server.ResponseStatusException(
+                    org.springframework.http.HttpStatus.BAD_REQUEST, "Username cannot be empty");
+        }
+        if (userRepository.existsById(req.getUsername())) {
+            throw new org.springframework.web.server.ResponseStatusException(
+                    org.springframework.http.HttpStatus.CONFLICT, "Username already taken");
+        }
+
         UserEntity user = new UserEntity();
  
         user.setUsername(req.getUsername());
-        user.setPassword(req.getPassword());
+        user.setPassword(passwordEncoder.encode(req.getPassword()));
         user.setTagline(req.getTagline());
         user.setProfilePicture(req.getProfilePicture());
         user.setTimestamp(LocalDateTime.now());

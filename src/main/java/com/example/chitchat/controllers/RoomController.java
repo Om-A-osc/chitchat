@@ -1,6 +1,5 @@
 package com.example.chitchat.controllers;
 
-import com.example.chitchat.dto.AuthResponse;
 import com.example.chitchat.dto.CreateRoomRequest;
 import com.example.chitchat.dto.GetRoomResponse;
 import com.example.chitchat.service.RoomService;
@@ -14,7 +13,7 @@ import java.util.UUID;
 @RestController
 public class RoomController {
 
-    public RoomService roomService;
+    private final RoomService roomService;
 
     public RoomController(RoomService roomService){
         this.roomService = roomService;

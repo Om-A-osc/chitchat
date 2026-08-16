@@ -2,10 +2,12 @@ package com.example.chitchat.entity;
 
 import jakarta.persistence.Embeddable;
 
+import java.io.Serializable;
+import java.util.Objects;
 import java.util.UUID;
 
 @Embeddable
-public class UsersRoomsRolesIdEntity {
+public class UsersRoomsRolesIdEntity implements Serializable {
     private String username;
     private UUID roomId;
 
@@ -35,13 +37,12 @@ public class UsersRoomsRolesIdEntity {
     @Override
     public boolean equals(Object o){
         if(this==o) return true;
-        if( !(o instanceof UsersRoomsRolesIdEntity) ) return false;
-        UsersRoomsRolesIdEntity that = (UsersRoomsRolesIdEntity)o;
-        return username.equals(that.getUsername()) && roomId.equals(that.getRoomId());
+        if( !(o instanceof UsersRoomsRolesIdEntity that) ) return false;
+        return Objects.equals(username, that.username) && Objects.equals(roomId, that.roomId);
     }
     @Override
     public int hashCode() {
-        return java.util.Objects.hash(username, roomId);
+        return Objects.hash(username, roomId);
     }
 
 }
