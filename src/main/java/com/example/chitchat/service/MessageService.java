@@ -90,8 +90,7 @@ public class MessageService {
     }
     // now verify + decrypt before returning
     public List<MessageEntity> getRecentMessages(UUID roomId) {
-    LocalDateTime cutoff = LocalDateTime.now().minusDays(2);
-    List<MessageEntity> messages = messageRepository.findRecentMessages(roomId, cutoff);
+    List<MessageEntity> messages = messageRepository.findRecentMessages(roomId);
  
     for (MessageEntity m : messages) {
         UserEntity sender = userRepository.findById(m.getUsername()).orElse(null);
