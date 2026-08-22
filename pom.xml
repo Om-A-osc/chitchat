@@ -58,7 +58,7 @@
 		<dependency>
 			<groupId>org.postgresql</groupId>
 			<artifactId>postgresql</artifactId>
-			<scope>runtime</scope>
+			<!-- compile scope: WsEventListener uses PGConnection for LISTEN/NOTIFY -->
 		</dependency>
 		<dependency>
 			<groupId>com.h2database</groupId>

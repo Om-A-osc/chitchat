@@ -8,7 +8,7 @@ import com.example.chitchat.entity.UsersRoomsRolesEntity;
 import com.example.chitchat.entity.UsersRoomsRolesIdEntity;
 import com.example.chitchat.repository.RoomRepository;
 import com.example.chitchat.repository.UsersRoomsRolesRepository;
-import com.example.chitchat.websocket.WebsocketSessionManager;
+import com.example.chitchat.websocket.WsEventPublisher;
 import jakarta.transaction.Transactional;
 import org.springframework.stereotype.Service;
 
@@ -21,13 +21,13 @@ public class RoomService {
     private final RoomRepository roomRepository;
     private final UsersRoomsRolesRepository usersRoomsRolesRepository;
     private final UserService userService;
-    private final WebsocketSessionManager websocketSessionManager;
+    private final WsEventPublisher websocketEventPublisher;
 
-    public RoomService(RoomRepository roomRepository, UsersRoomsRolesRepository usersRoomsRolesRepository, UserService userService, WebsocketSessionManager websocketSessionManager){
+    public RoomService(RoomRepository roomRepository, UsersRoomsRolesRepository usersRoomsRolesRepository, UserService userService, WsEventPublisher websocketEventPublisher){
         this.roomRepository = roomRepository;
         this.usersRoomsRolesRepository = usersRoomsRolesRepository;
         this.userService = userService;
-        this.websocketSessionManager = websocketSessionManager;
+        this.websocketEventPublisher = websocketEventPublisher;
     }
 
     @Transactional
@@ -136,7 +136,7 @@ public class RoomService {
         event.setMessageId(UUID.randomUUID());
         event.setType("CHAT_MESSAGE");
         event.setRoomId(roomId);
-        websocketSessionManager.broadcastToRoom(roomId,event);
+        websocketEventPublisher.publishRaw(roomId,event);
 
         return true;
     }
@@ -154,7 +154,7 @@ public class RoomService {
         event.setType("CHAT_MESSAGE");
         event.setRoomId(roomId);
 
-        websocketSessionManager.broadcastToRoom(roomId,event);
+        websocketEventPublisher.publishRaw(roomId,event);
         return true ;
     }
 

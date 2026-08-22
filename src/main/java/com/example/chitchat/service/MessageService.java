@@ -81,6 +81,43 @@ public class MessageService {
 }
 
 
+    /**
+     * Hydrate one persisted message for live WebSocket fan-out: verify the
+     * sender signature and decrypt, mirroring getRecentMessages() semantics.
+     * Called by WsEventListener on every instance that received the event.
+     */
+    public ChatMessageResponse getLiveMessage(UUID messageId) {
+        MessageEntity m = messageRepository.findById(messageId).orElse(null);
+        if (m == null) return null;
+
+        UserEntity sender = userRepository.findById(m.getUsername()).orElse(null);
+        if (sender == null || sender.getPublicKey() == null) {
+            m.setContent("[SIGNATURE VERIFICATION FAILED - unknown sender]");
+        } else {
+            boolean ok = messageCryptoService.verify(
+                    sender.getPublicKey(), m.getRoomId().toString(), m.getUsername(),
+                    m.getCiphertext(), m.getNonce(), m.getSignature());
+            if (!ok) {
+                m.setContent("[SIGNATURE VERIFICATION FAILED - forged or modified]");
+            } else {
+                try {
+                    m.setContent(messageCryptoService.decrypt(m.getCiphertext(), m.getNonce()));
+                } catch (GeneralSecurityException e) {
+                    m.setContent("[TAMPERED - AES-GCM authentication failed]");
+                }
+            }
+        }
+
+        ChatMessageResponse response = new ChatMessageResponse();
+        response.setMessageId(m.getMessageId());
+        response.setContent(m.getContent());
+        response.setCreatedTimestamp(m.getCreatedTimestamp());
+        response.setSender(m.getUsername());
+        response.setRoomId(m.getRoomId());
+        response.setType("CHAT_MESSAGE");
+        return response;
+    }
+
     public void initializeMessageReceipt(UUID roomId , UUID messageId ){
         List<String> userNames = usersRoomsRolesRepository.findUsernameByRoomId(roomId);
 

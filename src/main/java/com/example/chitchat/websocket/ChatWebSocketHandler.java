@@ -1,7 +1,6 @@
 package com.example.chitchat.websocket;
 
 import com.example.chitchat.dto.ChatMessageRequest;
-import com.example.chitchat.dto.ChatMessageResponse;
 import com.example.chitchat.dto.MessageDeliveryStatus;
 import com.example.chitchat.dto.WebSocketBaseRequest;
 import com.example.chitchat.entity.MessageEntity;
@@ -24,15 +23,18 @@ public class ChatWebSocketHandler extends TextWebSocketHandler {
     private final ObjectMapper objectMapper;
     private final MessageService messageService;
     private final RoomService roomService;
+    private final WsEventPublisher wsEventPublisher;
 
     public ChatWebSocketHandler(WebsocketSessionManager webSocketSessionManager,
                                 ObjectMapper objectMapper,
                                 MessageService messageService,
-                                RoomService roomService){
+                                RoomService roomService,
+                                WsEventPublisher wsEventPublisher){
         this.webSocketSessionManager = webSocketSessionManager;
         this.objectMapper = objectMapper;
         this.messageService = messageService;
         this.roomService = roomService;
+        this.wsEventPublisher = wsEventPublisher;
     }
 
     @Override
@@ -51,26 +53,19 @@ public class ChatWebSocketHandler extends TextWebSocketHandler {
 
             MessageEntity savedMessage = messageService.saveMessage(request,username);
 
-            ChatMessageResponse messageToSend = new ChatMessageResponse();
-
-            messageToSend.setMessageId(savedMessage.getMessageId());
-            messageToSend.setContent(savedMessage.getContent());
-            messageToSend.setCreatedTimestamp(savedMessage.getCreatedTimestamp());
-            messageToSend.setSender(username);
-            messageToSend.setRoomId(savedMessage.getRoomId());
-            messageToSend.setType("CHAT_MESSAGE");
-
-            webSocketSessionManager.broadcastToRoom(request.getRoomId(),messageToSend);
+            // Fan out via PostgreSQL NOTIFY; every instance (including this one)
+            // hydrates the message from the shared DB and pushes to its local sockets.
+            wsEventPublisher.publishMessage(request.getRoomId(), savedMessage.getMessageId());
         }
         else if("MESSAGE_DELIVERED".equals(req.getType())){
             MessageDeliveryStatus request = objectMapper.readValue(message.getPayload(),MessageDeliveryStatus.class);
             messageService.updateMessageReceiptDeliveredStatus(request,username);
-            webSocketSessionManager.broadcastToRoomMessageStatus(request, username);
+            wsEventPublisher.publishStatus(request.getRoomId(), request.getMessageId(), username);
         }
         else if("MESSAGE_READ".equals(req.getType())){
             MessageDeliveryStatus request = objectMapper.readValue(message.getPayload(),MessageDeliveryStatus.class);
             messageService.updateMessageReceiptReadStatus(request,username);
-            webSocketSessionManager.broadcastToRoomMessageStatus(request, username);
+            wsEventPublisher.publishStatus(request.getRoomId(), request.getMessageId(), username);
         }
         else if("JOIN_ROOM".equals(req.getType())){
             ChatMessageRequest request = objectMapper.readValue(message.getPayload(), ChatMessageRequest.class);
