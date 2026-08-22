@@ -52,7 +52,12 @@ public class SecurityConfig {
                                 "/auth/**",
                                 "/ws/**",
                                 "/ws",
-                                "/user/**"
+                                "/user/**",
+                                "/",
+                                "/index.html",
+                                "/assets/**",
+                                "/favicon.ico",
+                                "/vite.svg"
                         ).permitAll()
 
                         // Everything else requires authentication
