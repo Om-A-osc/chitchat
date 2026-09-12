@@ -58,7 +58,9 @@ public class SecurityConfig {
                                 "/assets/**",
                                 "/favicon.ico",
                                 "/vite.svg",
-                                "/health"
+                                "/health",
+                                "/message",
+                                "/feed"
                         ).permitAll()
 
                         // Everything else requires authentication
