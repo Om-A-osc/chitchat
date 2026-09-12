@@ -7,6 +7,7 @@ import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.jdbc.core.JdbcTemplate;
+import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.web.bind.annotation.*;
 
 import java.time.LocalDateTime;
@@ -32,8 +33,6 @@ public class LoadTestController {
         }
         UUID id = UUID.randomUUID();
         try {
-            // Fast path: single raw INSERT, bypassing JPA merge (extra SELECT)
-            // and persistence-context overhead on the hot path.
             jdbcTemplate.update(
                     "INSERT INTO load_test_messages(id, client_name, msg, \"timestamp\") VALUES (?,?,?,?)",
                     id, request.getClientName(), request.getMsg(), LocalDateTime.now());
@@ -47,5 +46,15 @@ public class LoadTestController {
     public ResponseEntity<List<LoadTestMessage>> getFeed() {
         List<LoadTestMessage> messages = loadTestMessageRepository.findAllByOrderByIdAsc();
         return ResponseEntity.ok(messages);
+    }
+
+    // Auto-delete messages older than 1 hour every 5 minutes
+    @Scheduled(fixedRate = 300000)
+    public void purgeOldMessages() {
+        LocalDateTime oneHourAgo = LocalDateTime.now().minusHours(1);
+        jdbcTemplate.update(
+            "DELETE FROM load_test_messages WHERE \"timestamp\" < ?", 
+            oneHourAgo
+        );
     }
 }
