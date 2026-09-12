@@ -6,6 +6,7 @@ import com.example.chitchat.repository.LoadTestMessageRepository;
 import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.web.bind.annotation.*;
 
 import java.time.LocalDateTime;
@@ -17,9 +18,11 @@ import java.util.UUID;
 public class LoadTestController {
 
     private final LoadTestMessageRepository loadTestMessageRepository;
+    private final JdbcTemplate jdbcTemplate;
 
-    public LoadTestController(LoadTestMessageRepository loadTestMessageRepository) {
+    public LoadTestController(LoadTestMessageRepository loadTestMessageRepository, JdbcTemplate jdbcTemplate) {
         this.loadTestMessageRepository = loadTestMessageRepository;
+        this.jdbcTemplate = jdbcTemplate;
     }
 
     @PostMapping("/message")
@@ -28,14 +31,12 @@ public class LoadTestController {
             return ResponseEntity.badRequest().body("client-name and msg are required");
         }
         UUID id = UUID.randomUUID();
-        LoadTestMessage message = new LoadTestMessage(
-                id,
-                request.getClientName(),
-                request.getMsg(),
-                LocalDateTime.now()
-        );
         try {
-            loadTestMessageRepository.save(message);
+            // Fast path: single raw INSERT, bypassing JPA merge (extra SELECT)
+            // and persistence-context overhead on the hot path.
+            jdbcTemplate.update(
+                    "INSERT INTO load_test_messages(id, client_name, msg, \"timestamp\") VALUES (?,?,?,?)",
+                    id, request.getClientName(), request.getMsg(), LocalDateTime.now());
         } catch (DataIntegrityViolationException e) {
             return ResponseEntity.status(HttpStatus.CONFLICT).body("Duplicate message ID");
         }
