@@ -1,4 +1,4 @@
-# ChitChat — Secure Real-time Messaging Backend
+# ChitChat — Secure Real-time Messaging Backend Service
 
 A high-performance, secure real-time messaging backend built with **Spring Boot 3**, **WebSockets**, **PostgreSQL**, and cryptographic guarantees (AES-GCM encryption & Ed25519 digital signatures).
 
